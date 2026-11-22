@@ -428,6 +428,32 @@ def main(fig_dir: str, out_dir: str) -> None:
         "read": {k: int(np.isfinite(rows[:, i + 1]).sum()) for i, k in enumerate(("vi_iterations", "pi_iterations", "vi_seconds", "pi_seconds"))},
     }
 
+    # Figure 5: two bar charts of elevator transition probabilities (50 floors).
+    # Bars are yellow, 0.8 wide, starting at the floor number.
+    im5 = load(fig_dir / "fig-006.png")
+    masks5 = colour_masks(im5)
+    yellow = (im5[..., 0] > 200) & (im5[..., 1] > 200) & (im5[..., 2] < 90)
+    columns = []
+    # Both axes run exactly from tick to tick (0-50 floors; 0-0.040 and 0-0.025),
+    # and the bars hide the tick marks, so the frame itself is the calibration.
+    for x_range, y_max in (((0, 2600), 0.040), ((2600, im5.shape[1]), 0.025)):
+        left, right, top, bottom = find_axes(masks5["dark"], x_range)
+        heights = []
+        for floor in range(50):
+            col = int(round(left + (floor + 0.4) / 50 * (right - left)))
+            rows_y = np.flatnonzero(yellow[top:bottom, col - 3 : col + 4].any(axis=1))
+            heights.append(y_max * (bottom - (top + rows_y.min())) / (bottom - top) if rows_y.size else 0.0)
+        columns.append(heights)
+    np.savetxt(
+        out_dir / "report_fig5_elevator.csv",
+        np.c_[np.arange(50), np.array(columns).T],
+        delimiter=",",
+        header="floor,p_from10_button5,p_from5_button10",
+        comments="",
+        fmt=["%d", "%.5f", "%.5f"],
+    )
+    summary["report_fig5_elevator.csv"] = {"sum_left": float(np.sum(columns[0])), "sum_right": float(np.sum(columns[1]))}
+
     # Figures 4 and 8 are small bitmaps with two colours of marker that often
     # overlap (red is drawn on top of blue).  The x positions are known, so the
     # markers are assigned to them and whatever is hidden is left empty.

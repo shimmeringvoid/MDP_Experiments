@@ -83,16 +83,19 @@ def value_iteration(
     tol: float = 1e-6,
     max_iter: int = 1_000_000,
     v0: np.ndarray | None = None,
+    v_star: np.ndarray | None = None,
 ) -> Solution:
     """Synchronous value iteration.
 
     Stops when the largest change of any state's value in one sweep drops
     below ``tol``.  ``history`` records that change for every sweep
     (``delta``) and how many states changed their greedy action (``changed``).
+    If the true optimum ``v_star`` is supplied, the distance to it after every
+    sweep is recorded as ``error`` (with the matching ``backups``).
     """
     S, A = mdp.n_states, mdp.n_actions
     V = np.zeros(S) if v0 is None else np.array(v0, dtype=float)
-    deltas, changed = [], []
+    deltas, changed, errors = [], [], []
     policy = np.full(S, -1)
     converged = False
     start = time.perf_counter()
@@ -105,6 +108,8 @@ def value_iteration(
         delta = float(np.abs(V_new - V).max())
         deltas.append(delta)
         V = V_new
+        if v_star is not None:
+            errors.append(float(np.abs(V - v_star).max()))
         if delta < tol:
             converged = True
             break
@@ -124,6 +129,8 @@ def value_iteration(
             "changed": changed_arr,
             # sweep after which the greedy policy never changed again
             "policy_settled": int(nz[-1]) + 1 if nz.size else 0,
+            "error": np.array(errors),
+            "backups": np.arange(1, it + 1) * mdp.n_active * A,
         },
     )
 
@@ -141,6 +148,7 @@ def policy_iteration(
     policy0: np.ndarray | None = None,
     max_iter: int = 10_000,
     improve_tol: float | None = None,
+    v_star: np.ndarray | None = None,
 ) -> Solution:
     """Howard's policy iteration.
 
@@ -172,7 +180,7 @@ def policy_iteration(
         improve_tol = 1e-9 if evaluation == "exact" else 2 * eval_tol * mdp.gamma / (1 - mdp.gamma)
     V = np.zeros(S)
     backups = solves = 0
-    sweeps_per_eval, n_changed = [], []
+    sweeps_per_eval, n_changed, errors, backup_trace = [], [], [], []
     converged = False
     start = time.perf_counter()
     for it in range(1, max_iter + 1):
@@ -188,6 +196,9 @@ def policy_iteration(
             sweeps_per_eval.append(sweeps)
         Q = mdp.q_values(V)
         backups += mdp.n_active * A
+        if v_star is not None:
+            errors.append(float(np.abs(V - v_star).max()))
+            backup_trace.append(backups)
         better = (Q.max(axis=1) > Q[states, policy] + improve_tol) & mdp.active
         n_changed.append(int(better.sum()))
         if not better.any():
@@ -205,7 +216,12 @@ def policy_iteration(
         backups=backups,
         solves=solves,
         seconds=seconds,
-        history={"eval_sweeps": np.array(sweeps_per_eval), "changed": np.array(n_changed)},
+        history={
+            "eval_sweeps": np.array(sweeps_per_eval),
+            "changed": np.array(n_changed),
+            "error": np.array(errors),
+            "backups": np.array(backup_trace),
+        },
     )
 
 
@@ -215,6 +231,7 @@ def modified_policy_iteration(
     tol: float = 1e-6,
     max_iter: int = 1_000_000,
     v0: np.ndarray | None = None,
+    v_star: np.ndarray | None = None,
 ) -> Solution:
     """Modified policy iteration (Puterman & Shin, 1978).
 
@@ -224,7 +241,8 @@ def modified_policy_iteration(
     """
     S, A = mdp.n_states, mdp.n_actions
     V = np.zeros(S) if v0 is None else np.array(v0, dtype=float)
-    deltas = []
+    deltas, errors = [], []
+    per_iter = mdp.n_active * A + m * mdp.n_active
     converged = False
     start = time.perf_counter()
     for it in range(1, max_iter + 1):
@@ -235,11 +253,15 @@ def modified_policy_iteration(
         if delta < tol:
             V = V_new
             converged = True
+            if v_star is not None:
+                errors.append(float(np.abs(V - v_star).max()))
             break
         P_pi, r_pi = mdp.policy_model(Q.argmax(axis=1))
         for _ in range(m):
             V_new = r_pi + mdp.gamma * (P_pi @ V_new)
         V = V_new
+        if v_star is not None:
+            errors.append(float(np.abs(V - v_star).max()))
     seconds = time.perf_counter() - start
     return _finish(
         mdp,
@@ -249,7 +271,11 @@ def modified_policy_iteration(
         method=f"modified policy iteration (m={m})",
         backups=it * mdp.n_active * A + (it - 1) * m * mdp.n_active,
         seconds=seconds,
-        history={"delta": np.array(deltas)},
+        history={
+            "delta": np.array(deltas),
+            "error": np.array(errors),
+            "backups": np.minimum(np.arange(1, it + 1) * per_iter, it * per_iter - m * mdp.n_active),
+        },
     )
 
 
@@ -271,6 +297,7 @@ def gauss_seidel_value_iteration(
     tol: float = 1e-6,
     max_iter: int = 100_000,
     order: np.ndarray | None = None,
+    v_star: np.ndarray | None = None,
 ) -> Solution:
     """In-place value iteration: each backup sees the values already updated in this sweep.
 
@@ -281,7 +308,7 @@ def gauss_seidel_value_iteration(
     R, gamma = mdp.R, mdp.gamma
     states = np.flatnonzero(mdp.active) if order is None else np.asarray(order)
     V = np.zeros(S)
-    deltas = []
+    deltas, errors = [], []
     converged = False
     start = time.perf_counter()
     for it in range(1, max_iter + 1):
@@ -293,6 +320,8 @@ def gauss_seidel_value_iteration(
                 delta = change
             V[s] = v
         deltas.append(delta)
+        if v_star is not None:
+            errors.append(float(np.abs(V - v_star).max()))
         if delta < tol:
             converged = True
             break
@@ -305,7 +334,11 @@ def gauss_seidel_value_iteration(
         method="Gauss-Seidel value iteration",
         backups=it * states.size * A,
         seconds=seconds,
-        history={"delta": np.array(deltas)},
+        history={
+            "delta": np.array(deltas),
+            "error": np.array(errors),
+            "backups": np.arange(1, it + 1) * states.size * A,
+        },
     )
 
 
@@ -313,6 +346,8 @@ def prioritized_sweeping(
     mdp: MDP,
     tol: float = 1e-6,
     max_backups: int = 500_000_000,
+    v_star: np.ndarray | None = None,
+    record_every: int | None = None,
 ) -> Solution:
     """Value iteration that always backs up the state whose value is most out of date.
 
@@ -353,6 +388,9 @@ def prioritized_sweeping(
     heap = [(-p, s) for s, p in enumerate(priority) if p >= tol]
     heapq.heapify(heap)
     n_updates = 0
+    errors, backup_trace = [], []
+    if record_every is None:
+        record_every = mdp.n_active  # one record per "sweep's worth" of state updates
     while heap and backups < max_backups:
         neg, s = heapq.heappop(heap)
         if -neg != priority[s]:
@@ -362,6 +400,9 @@ def prioritized_sweeping(
         n_updates += 1
         change = abs(v - V[s])
         V[s] = v
+        if v_star is not None and n_updates % record_every == 0:
+            errors.append(float(np.abs(V - v_star).max()))
+            backup_trace.append(backups)
         priority[s] = 0.0
         # a self-loop keeps the state itself slightly out of date
         own = prob[s][nxt[s] == s]
@@ -384,6 +425,7 @@ def prioritized_sweeping(
         method="prioritized sweeping",
         backups=backups,
         seconds=seconds,
+        history={"error": np.array(errors), "backups": np.array(backup_trace)},
     )
 
 

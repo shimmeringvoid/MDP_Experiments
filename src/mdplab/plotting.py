@@ -78,7 +78,7 @@ def use_style() -> None:
             "font.size": 10,
             "text.color": INK,
             "axes.titlesize": 11,
-            "axes.titleweight": "semibold",
+            "axes.titleweight": "bold",
             "axes.titlelocation": "left",
             "axes.titlepad": 10,
             "axes.labelsize": 10,
@@ -220,7 +220,7 @@ def plot_gridworld(
     legend: bool = True,
     value_label: str = "value",
     vlim: float | None = None,
-    arrow_color: str = BLUE,
+    arrow_color: str | None = None,
     flagged_label: str = "differs from the optimal policy",
 ):
     """Draw a grid world, optionally with a policy and a value function.
@@ -248,11 +248,20 @@ def plot_gridworld(
 
     if values is not None:
         shade = np.where(layout == FREE, np.asarray(values, dtype=float).reshape(rows, cols), np.nan)
-        lim = np.nanmax(np.abs(shade)) if vlim is None else vlim
-        image = ax.imshow(shade, cmap=DIVERGING, vmin=-lim, vmax=lim, alpha=0.9, zorder=0)
+        lo, hi = np.nanmin(shade), np.nanmax(shade)
+        if vlim is not None or (lo < 0 < hi and min(-lo, hi) > 0.05 * max(-lo, hi)):
+            # values of both signs: blue above zero, red below, grey at zero
+            lim = max(-lo, hi) if vlim is None else vlim
+            image = ax.imshow(shade, cmap=DIVERGING, vmin=-lim, vmax=lim, zorder=0)
+        else:
+            image = ax.imshow(shade, cmap=SEQUENTIAL, vmin=lo, vmax=hi, alpha=0.85, zorder=0)
         cbar = ax.figure.colorbar(image, ax=ax, fraction=0.035, pad=0.02)
         cbar.set_label(value_label)
         cbar.outline.set_visible(False)
+        if arrow_color is None:
+            arrow_color = INK  # the series blue would vanish against the shading
+    if arrow_color is None:
+        arrow_color = BLUE
 
     # hairlines between cells
     ax.vlines(np.arange(0.5, cols - 0.5), -0.5, rows - 0.5, color=GRIDLINE, linewidth=0.6, zorder=1)

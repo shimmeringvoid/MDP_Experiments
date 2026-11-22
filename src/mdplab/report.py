@@ -18,6 +18,7 @@ from .gridworld import GridWorld
 __all__ = [
     "figure2",
     "figure4",
+    "figure5",
     "figure7",
     "figure8",
     "figure3_gridworld",
@@ -48,6 +49,11 @@ def figure2() -> pd.DataFrame:
 def figure4() -> pd.DataFrame:
     """Figure 4: "mean reward" of the planned and the Q-learned policies on small grid worlds."""
     return _csv("report_fig4_gridworld.csv")
+
+
+def figure5() -> pd.DataFrame:
+    """Figure 5: transition probabilities T(10, 5, .) and T(5, 10, .) of the 50-floor elevator."""
+    return _csv("report_fig5_elevator.csv")
 
 
 def figure7() -> pd.DataFrame:
