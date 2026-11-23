@@ -4,6 +4,7 @@ Built to revisit a 2014 course project on two MDPs, a random grid world and a
 "crazy elevator", and to take its experiments further.
 """
 
+from .benchmark import WorldSet
 from .core import MDP, Sampler, greedy, random_argmax
 from .elevator import REPORT_POLICY_50, crazy_elevator, elevator_transitions
 from .evaluation import (
@@ -40,7 +41,6 @@ from .planning import (
     prioritized_sweeping,
     value_iteration,
 )
-
 from .random_mdp import garnet
 
 __version__ = "0.1.0"
@@ -51,6 +51,7 @@ __all__ = [
     "greedy",
     "random_argmax",
     "GridWorld",
+    "WorldSet",
     "crazy_elevator",
     "elevator_transitions",
     "REPORT_POLICY_50",

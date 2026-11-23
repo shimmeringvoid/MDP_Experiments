@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,8 @@ version = "0.1.0"
 description = "Planning and reinforcement learning on two small MDPs: a 2014 course project, revisited and extended."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Rafael Espericueta" }]
 dependencies = [
     "numpy>=1.24",
@@ -20,7 +21,7 @@ dependencies = [
 [project.optional-dependencies]
 notebooks = ["jupyterlab", "nbconvert", "ipykernel"]
 deep = ["torch>=2.0"]
-dev = ["pytest", "ruff", "jupytext"]
+dev = ["pytest", "ruff", "pillow"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -33,3 +34,8 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501", "E741"]

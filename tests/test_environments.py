@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from mdplab import REPORT_POLICY_50, GridWorld, crazy_elevator, elevator_transitions, value_iteration
-from mdplab.gridworld import DOWN, FREE, GOAL, LEFT, OBSTACLE, PIT, RIGHT, UP
+from mdplab.gridworld import DOWN, GOAL, OBSTACLE, PIT, RIGHT, UP
 
 
 def test_gridworld_moves_slips_and_bumps():
@@ -77,7 +77,10 @@ def test_elevator_is_a_proper_mdp(formula):
 def test_elevator_formula_as_written():
     T = elevator_transitions(8, formula="as_written")
     k, a, j = 5, 3, 6
-    w = lambda jj: abs(np.sin(k + np.sin(k * a + np.sin(jj**2))))
+
+    def w(jj):
+        return abs(np.sin(k + np.sin(k * a + np.sin(jj**2))))
+
     assert T[k, a, j] == pytest.approx(w(j) / sum(w(jj) for jj in range(8)))
 
 

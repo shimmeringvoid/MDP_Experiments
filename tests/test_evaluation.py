@@ -82,3 +82,17 @@ def test_policy_that_never_finishes_is_detected():
     assert not info.proper[:3].any()
     mc = monte_carlo(gw.mdp, policy, n_restarts=3, seed=0, max_steps=50)
     assert not mc.finished.any() and (mc.steps == 50).all()
+
+
+def test_world_set_scores_optimal_one_and_random_zero():
+    from mdplab import WorldSet, policy_iteration
+
+    worlds = WorldSet.random(4, 4, n=6, seed=1)
+    assert len(worlds) == 6 and set(worlds.optimal.columns) == {"free_cells", "lost_by_random", "p_goal", "p_pit"}
+    best = worlds.evaluate(lambda world: policy_iteration(world.mdp).policy)
+    assert np.allclose(best["score"], 1.0) and np.allclose(best["value_lost"], 0.0, atol=1e-8)
+    assert np.allclose(best["wrong_cells"], 0.0)
+    assert np.allclose(best["p_goal"], worlds.optimal["p_goal"]) and np.allclose(best["p_pit"], worlds.optimal["p_pit"])
+    always_up = worlds.evaluate(lambda world: np.zeros(world.n_states, dtype=int))
+    assert (always_up["score"] < 1.0).all() and (always_up["value_lost"] > 0).all()
+    assert ((always_up["p_goal"] + always_up["p_pit"]) <= 1 + 1e-9).all()

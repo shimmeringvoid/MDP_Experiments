@@ -54,7 +54,10 @@ def test_policy_model_deterministic_and_stochastic_agree(small_mdp, rng):
     one_hot = np.eye(A)[policy]
     P1, r1 = mdp.policy_model(policy)
     P2, r2 = mdp.policy_model(one_hot)
-    dense = lambda M: M.toarray() if sp.issparse(M) else np.asarray(M)
+
+    def dense(M):
+        return M.toarray() if sp.issparse(M) else np.asarray(M)
+
     assert np.allclose(dense(P1), dense(P2))
     assert np.allclose(r1, r2)
 
