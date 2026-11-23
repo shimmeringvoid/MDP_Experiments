@@ -1,5 +1,9 @@
 # Markov decision processes, revisited
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/shimmeringvoid/MDP_Experiments)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/shimmeringvoid/MDP_Experiments/blob/main/notebooks/01_two_mdps.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/shimmeringvoid/MDP_Experiments/main?labpath=notebooks%2F01_two_mdps.ipynb)
+
 In spring 2014 I wrote a report for Georgia Tech's CS 7641 (Machine Learning) that compared value
 iteration, policy iteration and Q-learning on two Markov decision processes of my own choosing: a
 randomly generated **grid world** with pits, and a **crazy elevator** whose buttons only influence
@@ -93,8 +97,21 @@ beyond it. They are stored with their outputs, so they can be read here without 
 
 ## Running it
 
+### In the browser, with nothing to install
+
+* **GitHub Codespaces** (the first badge above) creates a machine in the cloud that holds this
+  repository with the library, Jupyter and PyTorch installed. Setting it up takes a few minutes the
+  first time. Then open a notebook from `notebooks/` and choose the Python kernel when asked.
+* **Google Colab.** Every notebook has an *Open in Colab* badge under its title. Colab opens the
+  notebook on its own, so the first code cell fetches this repository; after that the notebook
+  runs as it does anywhere else.
+* **Binder** (the third badge) starts JupyterLab on this repository. It installs the library but
+  not PyTorch, so it runs notebooks 1 to 9.
+
+### On your own machine
+
 ```bash
-git clone <this repository> && cd <its folder>
+git clone https://github.com/shimmeringvoid/MDP_Experiments.git && cd MDP_Experiments
 pip install -e ".[notebooks]"        # the library and Jupyter
 pip install -e ".[notebooks,deep]"   # the same plus PyTorch, for notebook 10
 pytest                               # about 20 seconds
@@ -102,12 +119,14 @@ jupyter lab notebooks
 ```
 
 `make notebooks` runs all ten again from clean kernels, which takes about 20 minutes on a laptop.
-Notebooks 1 to 9 use fixed seeds and give the same numbers on every run. Notebook 10 trains
-networks, whose results can differ slightly between machines and PyTorch versions.
+Notebooks 1 to 9 use fixed seeds and give the same numbers on every run, timings aside. Notebook 10
+trains networks, whose results can differ slightly between machines and PyTorch versions.
 
 The stored outputs were produced with Python 3.13, NumPy 2.5, SciPy 1.18, pandas 3.0, Matplotlib
-3.11 and PyTorch 2.15. The tests also pass on Python 3.10, and on the oldest versions of the
-libraries that `pyproject.toml` allows; the notebooks have not been run on those.
+3.11 and PyTorch 2.15. The tests also pass on Python 3.10 to 3.12 and on the oldest versions of the
+libraries that `pyproject.toml` allows. Notebooks 1 to 9 have also been run on Python 3.10 with
+NumPy 2.2, SciPy 1.15, pandas 2.3 and Matplotlib 3.10: timings aside, every number came out the
+same except one table entry in notebook 9 (4.91 instead of 4.99).
 
 ## The library
 
@@ -182,6 +201,7 @@ Found while reproducing it:
 ## Layout
 
 ```
+.devcontainer/ the environment that GitHub Codespaces builds
 notebooks/     the ten notebooks, with outputs
 src/mdplab/    the library
 tests/         its tests

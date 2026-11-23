@@ -1,0 +1,13 @@
+{
+  "name": "MDP experiments",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "pip install -e '.[notebooks]' && pip install torch --index-url https://download.pytorch.org/whl/cpu",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ]
+    }
+  }
+}
